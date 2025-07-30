@@ -12,11 +12,16 @@ import (
 )
 
 func main() {
+	// 1. Load .env terlebih dahulu
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
+	// 2. Baru inisialisasi Midtrans setelah env dimuat
+	config.InitMidtrans()
+
+	// 3. Koneksi DB dan lainnya
 	db := config.ConnectDB()
 	db.AutoMigrate(&model.User{})
 	r := router.SetupRouter(db)

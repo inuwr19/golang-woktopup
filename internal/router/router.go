@@ -48,6 +48,24 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		api.GET("/games", game.GetGames)
 		api.GET("/games/:id", game.GetGameDetail)
 
+		// Handler product (get products by game)
+		order := handler.NewOrderHandler(db)
+		api.POST("/orders", order.CreateOrder)
+		api.GET("/orders/:id", order.GetOrderDetail)
+
+		// Handler order (create order)
+		voucher := handler.NewVoucherHandler(db)
+		api.POST("/voucher/apply", voucher.ApplyVoucher)
+
+		// Handler payment (create Midtrans transaction)
+		payment := handler.NewPaymentHandler(db)
+		api.POST("/payment/create", payment.CreateMidtransTransaction)
+		api.POST("/payments/handle-notification", payment.HandleNotification)
+
+		// Handler manual payment (check payment status)
+		manualPayment := handler.NewManualPaymentHandler(db)
+		api.POST("/payments/manual-check", manualPayment.CheckPaymentStatus)
+
 	}
 
 	return r
