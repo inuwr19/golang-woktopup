@@ -52,6 +52,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		order := handler.NewOrderHandler(db)
 		api.GET("/transactions/latest", order.GetLatestTransactions)
 		api.POST("/orders", order.CreateOrder)
+		api.GET("/history-orders/:id", order.GetOrdersByUser)
 		api.GET("/orders/:id", order.GetOrderDetail)
 		api.GET("/invoice-by-order/:order_id", order.GetInvoiceByOrder)
 
