@@ -5,6 +5,7 @@ import "time"
 type Payment struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
 	OrderID       uint      `json:"order_id"`
+	Order         Order     `gorm:"foreignKey:OrderID"`
 	PaymentMethod string    `json:"payment_method"`
 	TransactionID string    `json:"transaction_id"`
 	MidtransID    string    `json:"midtrans_id"`

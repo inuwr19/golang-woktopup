@@ -128,3 +128,22 @@ func (h *OrderHandler) GetLatestTransactions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (h *OrderHandler) GetOrderDetail(c *gin.Context) {
+	id := c.Param("id")
+
+	var order model.Order
+	err := h.DB.
+		Preload("User").
+		Preload("Product").
+		Preload("Product.Game").
+		Preload("Voucher").
+		First(&order, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Order not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}
