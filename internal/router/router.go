@@ -50,8 +50,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 		// Handler product (get products by game)
 		order := handler.NewOrderHandler(db)
+		api.GET("/transactions/latest", order.GetLatestTransactions)
 		api.POST("/orders", order.CreateOrder)
-		api.GET("/orders/:id", order.GetOrderDetail)
+		api.GET("/orders/:id", order.GetOrdersByUser)
+		api.GET("/invoice-by-order/:order_id", order.GetInvoiceByOrder)
+
+		invoiceHandler := handler.NewInvoiceHandler(db)
+		invoices := api.Group("/invoices")
+		{
+			invoices.GET("/:id", invoiceHandler.GetInvoiceDetail)
+			invoices.GET("/:id/download", invoiceHandler.DownloadInvoicePDF)
+		}
 
 		// Handler order (create order)
 		voucher := handler.NewVoucherHandler(db)

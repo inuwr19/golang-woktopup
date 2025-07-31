@@ -96,6 +96,19 @@ func (h *PaymentHandler) CreateMidtransTransaction(c *gin.Context) {
 	})
 }
 
+func (h *PaymentHandler) CreateInvoiceIfNotExists(orderID uint) {
+	var count int64
+	h.DB.Model(&model.Invoice{}).Where("order_id = ?", orderID).Count(&count)
+	if count == 0 {
+		invoice := model.Invoice{
+			OrderID:     orderID,
+			InvoiceCode: fmt.Sprintf("INV-%d-%d", orderID, time.Now().Unix()),
+			GeneratedAt: time.Now(),
+		}
+		h.DB.Create(&invoice)
+	}
+}
+
 func (h *PaymentHandler) HandleNotification(c *gin.Context) {
 	type NotificationBody struct {
 		Result         map[string]interface{} `json:"result"`
@@ -108,21 +121,18 @@ func (h *PaymentHandler) HandleNotification(c *gin.Context) {
 		return
 	}
 
-	// Ambil order_id dari Midtrans (sebenarnya itu adalah TransactionID internal kita, TRX-xxxxxx)
 	internalTrxID, ok := body.Result["order_id"].(string)
 	if !ok || internalTrxID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid or missing order_id in result"})
 		return
 	}
 
-	// Cari order berdasarkan TransactionID (TRX-xxx)
 	var order model.Order
 	if err := h.DB.Where("transaction_id = ?", internalTrxID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Order not found with transaction_id", "order_id": internalTrxID})
 		return
 	}
 
-	// Ambil status dari body atau result
 	status := body.OverrideStatus
 	if status == "" {
 		if s, ok := body.Result["transaction_status"]; ok {
@@ -133,7 +143,6 @@ func (h *PaymentHandler) HandleNotification(c *gin.Context) {
 		}
 	}
 
-	// Ambil MidtransID (UUID) dari Midtrans
 	midtransID := ""
 	if txID, ok := body.Result["transaction_id"].(string); ok {
 		midtransID = txID
@@ -168,6 +177,11 @@ func (h *PaymentHandler) HandleNotification(c *gin.Context) {
 			UpdatedAt:     time.Now(),
 		}
 		h.DB.Create(&payment)
+	}
+
+	// ✅ BUAT INVOICE jika status settlement
+	if status == "settlement" {
+		h.CreateInvoiceIfNotExists(order.ID)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Notification handled successfully"})

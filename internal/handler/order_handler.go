@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"golang-woktopup/internal/model"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -52,21 +54,77 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	c.JSON(http.StatusCreated, input)
 }
 
-func (h *OrderHandler) GetOrderDetail(c *gin.Context) {
-	id := c.Param("id")
+func (h *OrderHandler) GetOrdersByUser(c *gin.Context) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	if userID == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 
-	var order model.Order
+	var orders []model.Order
+	err := h.DB.
+		Preload("Product.Game").
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&orders).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch orders"})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+func (h *OrderHandler) GetInvoiceByOrder(c *gin.Context) {
+	orderIDParam := c.Param("order_id")
+	orderID, err := strconv.Atoi(orderIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid order ID"})
+		return
+	}
+
+	var invoice model.Invoice
+	err = h.DB.Preload("Order.Product.Game").
+		Preload("Order.User").
+		Where("order_id = ?", orderID).
+		First(&invoice).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Invoice not found for this order"})
+		return
+	}
+
+	c.JSON(http.StatusOK, invoice)
+}
+
+func (h *OrderHandler) GetLatestTransactions(c *gin.Context) {
+	var orders []model.Order
 	err := h.DB.
 		Preload("User").
 		Preload("Product").
 		Preload("Product.Game").
-		Preload("Voucher").
-		First(&order, id).Error
+		Where("status = ?", "settlement").
+		Order("created_at DESC").
+		Limit(10).
+		Find(&orders).Error
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Order not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch transactions"})
 		return
 	}
 
-	c.JSON(http.StatusOK, order)
+	var result []map[string]interface{}
+	for _, o := range orders {
+		result = append(result, map[string]interface{}{
+			"id":        o.ID,
+			"game":      o.Product.Game.Name,
+			"amount":    o.Product.Name,
+			"user":      o.User.Name,
+			"createdAt": o.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, result)
 }
