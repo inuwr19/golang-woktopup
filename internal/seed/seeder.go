@@ -11,6 +11,7 @@ import (
 func SeedGamesAndProducts(db *gorm.DB) {
 	var count int64
 	db.Model(&model.Game{}).Count(&count)
+	db.Model(&model.Voucher{}).Count(&count)
 	if count > 0 {
 		return // jangan duplikat data
 	}
@@ -53,4 +54,33 @@ func SeedGamesAndProducts(db *gorm.DB) {
 		products[i].UpdatedAt = time.Now()
 	}
 	db.Create(&products)
+
+	vouchers := []model.Voucher{
+		{
+			Code:       "DISCOUNT10",
+			Discount:   10000,
+			ExpiryDate: time.Date(2025, 8, 28, 0, 0, 0, 0, time.UTC),
+			Status:     "active",
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+		{
+			Code:       "PROMO20",
+			Discount:   20000,
+			ExpiryDate: time.Date(2025, 9, 15, 0, 0, 0, 0, time.UTC),
+			Status:     "active",
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+		{
+			Code:       "HEMAT50",
+			Discount:   50000,
+			ExpiryDate: time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC),
+			Status:     "inactive",
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+	}
+	db.Create(&vouchers)
+
 }
