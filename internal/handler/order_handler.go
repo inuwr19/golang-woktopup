@@ -111,7 +111,10 @@ func (h *OrderHandler) GetLatestTransactions(c *gin.Context) {
 		Find(&orders).Error
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch transactions"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"transactions": []interface{}{}, // tetap kirim array kosong
+			"message":      "Failed to fetch transactions",
+		})
 		return
 	}
 
@@ -126,7 +129,9 @@ func (h *OrderHandler) GetLatestTransactions(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, gin.H{
+		"transactions": result, // array, walaupun kosong
+	})
 }
 
 func (h *OrderHandler) GetOrderDetail(c *gin.Context) {

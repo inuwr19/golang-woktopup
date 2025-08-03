@@ -17,7 +17,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Middleware CORS untuk izinkan akses dari frontend React (localhost:5173)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins: []string{
+			"http://localhost:5173",
+			"http://localhost:8081", // tambahkan ini
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-XSRF-TOKEN"},
 		AllowCredentials: true,
